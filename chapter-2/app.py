@@ -42,6 +42,8 @@ print(a > b)  # greater than
 print(a < b)  # less than
 print(a >= b)  # greater than or equal to
 print(a <= b)  # less than or equal to
+
+
 # Logical operators
 a = True
 b = False
