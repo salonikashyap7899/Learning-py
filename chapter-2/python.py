@@ -21,7 +21,6 @@ d = input("Enter sec number: ")
 print("average is:",( b + d) / 2)
 
 
-e = input("Enter first number: ")
-f = input("Enter sec number: ")
-# print("the square of the sum is:", (int(e) + int(f)) ** 2)
+e = input("Enter a number: ")
+print("the square of the sum is:", e**2)
 
