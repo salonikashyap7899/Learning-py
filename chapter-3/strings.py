@@ -17,7 +17,6 @@ print(a+b) # addition
 
 
 
-
 # relational operators with strings
 
 a = 50
