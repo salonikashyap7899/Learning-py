@@ -1,22 +1,22 @@
 #  strings
-# str1 = "Hello"
-# str2 = 'World'  
-# str3 = """This is a multi-line
-# string example."""
+str1 = "Hello"
+str2 = 'World'  
+str3 = """This is a multi-line
+string example."""
 
-# print(str1)
-# print(str2) 
-# print(str3)
+print(str1)
+print(str2) 
+print(str3)
 
 
-# str1 = "Hello"
-# str2 = "world-saloni "
-# print(len(str1))  # Length of the string
-# print(len(str2))  # Length of the string
+str1 = "Hello"
+str2 = "world-saloni "
+print(len(str1))  # Length of the string
+print(len(str2))  # Length of the string
 
-# final_string = str1 + " " + str2
-# print(len(final_string))  # Length after Concatenation
-# print(final_string)  # Concatenation
+final_string = str1 + " " + str2
+print(len(final_string))  # Length after Concatenation
+print(final_string)  # Concatenation
 
 
 
