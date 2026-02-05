@@ -1,147 +1,179 @@
 import pygame
-import sys
 import random
+import sys
 
-# -------------------
-# STEP 1: Initialize pygame
-# -------------------
+# ---------------- INIT ----------------
 pygame.init()
+pygame.mixer.init()
 
-# -------------------
-# STEP 2: Game window setup
-# -------------------
-width = 600
-height = 400
-screen = pygame.display.set_mode((width, height))
-pygame.display.set_caption("Snake Game")
+# ---------------- FULL SCREEN SETTINGS ----------------
+# This detects your monitor's actual width and height
+info = pygame.display.Info()
+WIDTH, HEIGHT = info.current_w, info.current_h
 
+# Using FULLSCREEN and SCALED flags for best performance
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+pygame.display.set_caption("Snake Game Pro")
 clock = pygame.time.Clock()
 
-# -------------------
-# STEP 3: Colors
-# -------------------
-black = (0, 0, 0)
-green = (0, 255, 0)
-red = (255, 0, 0)
-white = (255, 255, 255)
+# ---------------- GAME SETTINGS ----------------
+# Increased cell size so the snake isn't too small on high-res screens
+CELL = 40 
+START_SPEED = 7   # Slightly slower start for better control
+MAX_SPEED = 25
+speed = START_SPEED
 
-# -------------------
-# STEP 4: Snake settings (OUTSIDE LOOP)
-# -------------------
-snake_pos = [100, 50]
-snake_body = [
-    [100, 50],
-    [90, 50],
-    [80, 50]
-]
+# ---------------- COLORS ----------------
+WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
+DARK_GREEN = (0, 150, 0)
+RED = (255, 0, 0)
+BLACK = (0, 0, 0)
 
-direction = "RIGHT"
-change_to = direction
+# ---------------- FONTS ----------------
+font = pygame.font.SysFont("arial", 32, bold=True)
+big_font = pygame.font.SysFont("arial", 72, bold=True)
 
-# -------------------
-# STEP 5: Food settings
-# -------------------
-food_pos = [
-    random.randrange(1, width // 10) * 10,
-    random.randrange(1, height // 10) * 10
-]
-food_spawn = True
+# ---------------- LOAD ASSETS ----------------
+try:
+    grass = pygame.image.load("assets/grass.png").convert()
+    # Scale background to match your monitor's resolution
+    grass = pygame.transform.scale(grass, (WIDTH, HEIGHT))
+    
+    food_img = pygame.image.load("assets/food.png").convert_alpha()
+    food_img = pygame.transform.scale(food_img, (CELL, CELL))
+    
+    eat_sound = pygame.mixer.Sound("sounds/eat.wav")
+    gameover_sound = pygame.mixer.Sound("sounds/gameover.wav")
+    pygame.mixer.music.load("sounds/bg.mp3")
+    pygame.mixer.music.set_volume(0.3)
+    pygame.mixer.music.play(-1)
+except Exception as e:
+    print(f"Error loading assets: {e}")
 
-# -------------------
-# STEP 6: Score
-# -------------------
-score = 0
+# ---------------- FUNCTIONS ----------------
+def draw_background():
+    screen.blit(grass, (0, 0))
 
-def show_score():
-    font = pygame.font.SysFont("arial", 20)
-    score_surface = font.render(f"Score : {score}", True, white)
-    screen.blit(score_surface, (10, 10))
+def draw_snake():
+    for i, block in enumerate(snake):
+        color = GREEN if i == 0 else DARK_GREEN
+        pygame.draw.rect(screen, color, (block[0], block[1], CELL-2, CELL-2), border_radius=5)
 
-def game_over():
-    font = pygame.font.SysFont("arial", 40)
-    game_over_surface = font.render("GAME OVER", True, red)
-    score_surface = font.render(f"Final Score : {score}", True, white)
+def draw_ui():
+    # Modern Score & Speed display
+    score_text = font.render(f"Score: {score}", True, WHITE)
+    speed_text = font.render(f"Speed: {int(speed)}", True, (0, 255, 255))
+    screen.blit(score_text, (30, 30))
+    screen.blit(speed_text, (30, 70))
 
-    game_over_rect = game_over_surface.get_rect(center=(width/2, height/2 - 20))
-    score_rect = score_surface.get_rect(center=(width/2, height/2 + 20))
+def random_food():
+    cols = WIDTH // CELL
+    rows = HEIGHT // CELL
+    while True:
+        x = random.randint(0, cols - 1) * CELL
+        y = random.randint(0, rows - 1) * CELL
+        if [x, y] not in snake:
+            return [x, y]
 
-    screen.blit(game_over_surface, game_over_rect)
-    screen.blit(score_surface, score_rect)
+def move_snake():
+    global score, speed, food_pos
+    head_x, head_y = snake[0]
 
-    pygame.display.update()
-    pygame.time.delay(3000)
-    pygame.quit()
-    sys.exit()
+    if direction == "UP": head_y -= CELL
+    elif direction == "DOWN": head_y += CELL
+    elif direction == "LEFT": head_x -= CELL
+    elif direction == "RIGHT": head_x += CELL
 
-# -------------------
-# STEP 7: GAME LOOP
-# -------------------
-while True:
+    new_head = [head_x, head_y]
+    snake.insert(0, new_head)
 
-    # Handle events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-
-    # Keyboard input
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_UP] and direction != "DOWN":
-        change_to = "UP"
-    if keys[pygame.K_DOWN] and direction != "UP":
-        change_to = "DOWN"
-    if keys[pygame.K_LEFT] and direction != "RIGHT":
-        change_to = "LEFT"
-    if keys[pygame.K_RIGHT] and direction != "LEFT":
-        change_to = "RIGHT"
-
-    direction = change_to
-
-    # Move snake
-    if direction == "UP":
-        snake_pos[1] -= 10
-    if direction == "DOWN":
-        snake_pos[1] += 10
-    if direction == "LEFT":
-        snake_pos[0] -= 10
-    if direction == "RIGHT":
-        snake_pos[0] += 10
-
-    # Snake growing logic
-    snake_body.insert(0, list(snake_pos))
-
-    if snake_pos == food_pos:
-        score += 10
-        food_spawn = False
+    if new_head == food_pos:
+        score += 1
+        try: eat_sound.play()
+        except: pass
+        food_pos = random_food()
+        # Speed increases every 2 points
+        if score % 2 == 0 and speed < MAX_SPEED:
+            speed += 1.0
     else:
-        snake_body.pop()
+        snake.pop()
 
-    if not food_spawn:
-        food_pos = [
-            random.randrange(1, width // 10) * 10,
-            random.randrange(1, height // 10) * 10
-        ]
-    food_spawn = True
+def check_collision():
+    head = snake[0]
+    if head[0] < 0 or head[0] >= WIDTH or head[1] < 0 or head[1] >= HEIGHT:
+        return True
+    if head in snake[1:]:
+        return True
+    return False
 
-    # Drawing
-    screen.fill(black)
+def game_over_screen():
+    pygame.mixer.music.stop()
+    try: gameover_sound.play()
+    except: pass
 
-    for block in snake_body:
-        pygame.draw.rect(screen, green, pygame.Rect(block[0], block[1], 10, 10))
+    while True:
+        draw_background()
+        overlay = pygame.Surface((WIDTH, HEIGHT))
+        overlay.set_alpha(180)
+        overlay.fill((0, 0, 0))
+        screen.blit(overlay, (0, 0))
 
-    pygame.draw.rect(screen, red, pygame.Rect(food_pos[0], food_pos[1], 10, 10))
+        msg = big_font.render("GAME OVER", True, RED)
+        sc = font.render(f"Final Score: {score}", True, WHITE)
+        hint = font.render("Press 'R' to Restart | 'ESC' to Exit", True, WHITE)
 
-    # Collision with wall
-    if snake_pos[0] < 0 or snake_pos[0] > width - 10:
-        game_over()
-    if snake_pos[1] < 0 or snake_pos[1] > height - 10:
-        game_over()
+        screen.blit(msg, (WIDTH//2 - msg.get_width()//2, HEIGHT//2 - 100))
+        screen.blit(sc, (WIDTH//2 - sc.get_width()//2, HEIGHT//2))
+        screen.blit(hint, (WIDTH//2 - hint.get_width()//2, HEIGHT//2 + 80))
 
-    # Collision with itself
-    for block in snake_body[1:]:
-        if snake_pos == block:
-            game_over()
+        pygame.display.update()
 
-    show_score()
-    pygame.display.update()
-    clock.tick(10)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r: return
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit(); sys.exit()
+
+def run_game():
+    global snake, direction, change_dir, score, speed, food_pos
+    
+    snake = [[CELL*5, CELL*5], [CELL*4, CELL*5], [CELL*3, CELL*5]]
+    direction = "RIGHT"
+    change_dir = "RIGHT"
+    score = 0
+    speed = START_SPEED
+    food_pos = random_food()
+    try: pygame.mixer.music.play(-1)
+    except: pass
+
+    while True:
+        clock.tick(speed)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE: # Essential for Full Screen
+                    pygame.quit(); sys.exit()
+                if event.key == pygame.K_UP and direction != "DOWN": change_dir = "UP"
+                if event.key == pygame.K_DOWN and direction != "UP": change_dir = "DOWN"
+                if event.key == pygame.K_LEFT and direction != "RIGHT": change_dir = "LEFT"
+                if event.key == pygame.K_RIGHT and direction != "LEFT": change_dir = "RIGHT"
+
+        direction = change_dir
+        move_snake()
+
+        if check_collision():
+            game_over_screen()
+            run_game()
+
+        draw_background()
+        screen.blit(food_img, (food_pos[0], food_pos[1]))
+        draw_snake()
+        draw_ui()
+        pygame.display.update()
+
+if __name__ == "__main__":
+    run_game()
